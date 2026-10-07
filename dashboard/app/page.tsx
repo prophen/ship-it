@@ -66,6 +66,11 @@ function Card({ row }: { row: QueueRow }) {
     <div className="card">
       <span className={`badge ${row.platform}`}>{row.platform}</span>
       <p className="copy">{row.copy}</p>
+      {row.first_comment && (
+        <p className="first-comment">
+          <strong>First comment:</strong> {row.first_comment}
+        </p>
+      )}
       {row.image_url && <img className="preview" src={row.image_url} alt="post visual" />}
       <div className="meta">
         new story: {row.source_ref} &middot; {row.status}
