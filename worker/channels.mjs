@@ -2,7 +2,7 @@
 // Buffer channel mapping.
 //   node channels.mjs            -> list your organizations (copy the id)
 //   node channels.mjs <org-id>   -> list channels: id, name, service
-// Put the ids into BUFFER_CHANNELS in .env as {"x":"...","instagram":"...","facebook":"...","linkedin":"..."}.
+// Put the ids into BUFFER_CHANNELS in .env as {"instagram":"...","facebook":"..."}.
 import dotenv from 'dotenv';
 dotenv.config({ path: new URL('./.env', import.meta.url) });
 import { listOrganizations, listChannels } from './publishers/buffer.mjs';
