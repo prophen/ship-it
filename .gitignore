@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# secrets (templates like .env.example are fine to commit)
+.env
+.env.local
+.env.*.local
+
+# builds
+.next/
+dist/
+build/
+out/
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# local data
+*.sqlite
+*.db
