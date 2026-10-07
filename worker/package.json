@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "@supabase/supabase-js": "^2.44.0"
+  },
+  "name": "ship-it-worker",
+  "private": true,
+  "scripts": {
+    "agent": "node agent37.mjs",
+    "channels": "node channels.mjs",
+    "new-story": "node new-story.mjs",
+    "poll": "node poll-once.mjs"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}
