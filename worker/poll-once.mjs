@@ -44,6 +44,7 @@ for (const row of rows) {
       token: BUFFER_ACCESS_TOKEN,
       mode: BUFFER_SHARE_MODE,
       dueAt: row.scheduled_for,
+      platform: row.platform,
     });
     // A slotted row becomes 'scheduled' (Buffer owns the timing now);
     // an unslotted row goes out immediately as 'published'.
