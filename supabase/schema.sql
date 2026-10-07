@@ -6,6 +6,7 @@ create table if not exists publish_queue (
   source_ref text not null,
   platform text not null check (platform in ('x', 'instagram', 'facebook', 'linkedin')),
   copy text not null,
+  first_comment text,
   image_url text,
   sources jsonb not null default '[]',
   scheduled_for timestamptz,
