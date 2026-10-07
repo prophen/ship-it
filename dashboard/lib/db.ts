@@ -12,6 +12,7 @@ export type QueueRow = {
   source_ref: string;
   platform: string;
   copy: string;
+  first_comment: string | null;
   image_url: string | null;
   sources: { title: string; url: string }[] | null;
   scheduled_for: string | null;
