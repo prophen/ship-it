@@ -35,7 +35,7 @@ Built for the "Build an Agent" hackathon, Oct 7 2026. The gap it closes: every p
 
 Source of truth: `vendor/cbs-workflow/` (her scheduler agent's export). Not implemented yet on purpose; this is the 2:50–3:20 slice.
 
-1. **Caption spec**: update the draft prompt in `worker/new-story.mjs` to the house style from `PROMPT_TEMPLATES.md` #4: at least three paragraphs, exactly five unique hashtags in their own section, a separate hashtag-free first comment, and the disclosure line "Image generated with AI; not an archival photograph."
+1. **Caption spec**: done. `worker/new-story.mjs` drafts to the house style from `PROMPT_TEMPLATES.md` #4 (3+ paragraphs, hook, disclosure line, exactly five hashtags, separate hashtag-free first comment stored on the row).
 2. **`worker/visual.mjs`** (new): for each queued story, build the image prompt from the verified facts + inspected likeness cues (`PROMPT_TEMPLATES.md` #3, ending exactly "Optimized for 1080x1350 format."), then call `POST https://api.openai.com/v1/images/generations` with `model: gpt-image-1`, `size: 1024x1536`. Save the bytes locally, record dimensions.
 3. **Reference discovery**: find a credible likeness reference (institutional collection or historical record) with attribution URL. Monid image search is the sponsor-friendly path: `monid discover -q "historical portrait image search"`. For the demo, pre-picking 1–2 references is fine.
 4. **Likeness QA**: send the reference + generated image to a vision-capable OpenAI model with the `LIKENESS_QA.md` rubric; expect back pass / revise / unresolved with reasons. Never a numeric score. Store the record in the row's `qa` column.
