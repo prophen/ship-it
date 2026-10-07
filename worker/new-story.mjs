@@ -2,9 +2,9 @@
 // Ship It: the agent finds NEW stories, verifies them, drafts, queues.
 //   node new-story.mjs [--count=3] [--schedule] [--start=08:00] [--end=20:00]
 //   node new-story.mjs --topic="Port Chicago sailors" [--schedule]
-//   node new-story.mjs --count=6 --platforms=instagram,facebook [--schedule]
+//   node new-story.mjs --count=12 [--schedule]
 // --count is stories; each story drafts one post per platform in --platforms
-// (default: all four). Her daily cadence: --count=12 --platforms=instagram,facebook
+// (default: instagram,facebook). Her daily cadence: --count=12
 // (12 stories mirrored to both platforms = 24 posts).
 // --schedule spreads the drafts evenly across the day window (Pacific).
 // --topic skips ideation and builds facts for your chosen topic instead;
@@ -112,13 +112,13 @@ async function verify(idea) {
   return sources.slice(0, 5);
 }
 
-// 4. Draft: 4 platform-native versions from the verified facts only.
+// 4. Draft: platform-native versions from the verified facts only.
 async function draft(idea, sources) {
   const system = `You draft social posts for "California Black Stories".
 Voice: direct and practical, natural, never marketing copy. Never use em-dashes; use commas, periods, or colons. Lead with the human story, end with one reflective line.
 Accuracy first: use ONLY the verified facts below. Never invent dates, places, or quotes.
-Return JSON only: {"x": "...", "instagram": "...", "facebook": "...", "linkedin": "..."}.
-Constraints: x <= 280 chars, no hashtags on x. instagram: hook line, short body, 3-5 hashtags at the end. facebook: 2-4 sentences, storytelling. linkedin: professional framing, 3-5 sentences, no hashtags.`;
+Return JSON only: {"instagram": "...", "facebook": "..."}.
+Constraints: instagram: hook line, short body, 3-5 hashtags at the end. facebook: 2-4 sentences, storytelling.`;
   const user = `Verified facts about ${idea.person} (${idea.title}):\n` +
     idea.facts.map((f) => '- ' + f).join('\n') +
     `\nWhy it matters: ${idea.why_it_matters}\nSources:\n` +
@@ -135,7 +135,7 @@ for (const a of process.argv.slice(2)) {
 const scheduling = args.schedule === true || args.schedule === 'true';
 const covered = await existingStories();
 let count = Math.max(1, parseInt(args.count ?? '1', 10) || 1);
-const ALL_PLATFORMS = ['x', 'instagram', 'facebook', 'linkedin'];
+const ALL_PLATFORMS = ['instagram', 'facebook'];
 const platforms = (args.platforms
   ? String(args.platforms).split(',').map((s) => s.trim().toLowerCase())
   : ALL_PLATFORMS
