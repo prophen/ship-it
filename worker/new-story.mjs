@@ -80,7 +80,7 @@ async function ideate(alreadyCovered) {
   const system = `You research new stories for "California Black Stories": short, verified stories from Black history in California.
 Propose ONE real person or event NOT on the already-covered list. Only propose stories you have reasonable confidence are real; a verification step runs next and kills anything it cannot corroborate.
 Return JSON only: {"title": "...", "person": "...", "facts": ["4-6 specific facts with dates and places"], "why_it_matters": "..."}`;
-  const idea = await openaiJson(system, 'Already covered (do not repeat):\n' + alreadyCovered.slice(0, 150).join('\n'));
+  const idea = await openaiJson(system, 'Already covered (do not repeat):\n' + alreadyCovered.join('\n'));
   if (!idea.person || !Array.isArray(idea.facts) || !idea.facts.length) {
     throw new Error('Ideation returned an unusable candidate: ' + JSON.stringify(idea).slice(0, 300));
   }
@@ -93,7 +93,7 @@ async function factsFor(topic, alreadyCovered) {
   const system = `You research for "California Black Stories": short, verified stories from Black history in California.
 The user chose this topic: "${topic}". Return JSON only: {"title": "...", "person": "...", "facts": ["4-6 specific facts with dates and places"], "why_it_matters": "..."}.
 Only include facts you have reasonable confidence are real; a verification step runs next and kills anything it cannot corroborate.`;
-  const idea = await openaiJson(system, 'Already covered (avoid overlap):\n' + alreadyCovered.slice(0, 150).join('\n'));
+  const idea = await openaiJson(system, 'Already covered (avoid overlap):\n' + alreadyCovered.join('\n'));
   if (!idea.person || !Array.isArray(idea.facts) || !idea.facts.length) {
     throw new Error('Could not build a fact set for the topic: ' + JSON.stringify(idea).slice(0, 200));
   }
@@ -143,6 +143,20 @@ for (const a of process.argv.slice(2)) {
 }
 const scheduling = args.schedule === true || args.schedule === 'true';
 const covered = await existingStories();
+// Also dedupe against stories already in the queue (any status), so a
+// reject-and-rerun cycle proposes new stories instead of repeats.
+try {
+  const { data, error } = await supabase.from('publish_queue').select('source_ref');
+  if (error) throw error;
+  const queued = [...new Set((data || []).map((r) => r.source_ref).filter(Boolean))]
+    .filter((s) => !covered.includes(s));
+  if (queued.length) {
+    console.log(`dedupe: +${queued.length} already-queued stories`);
+    covered.push(...queued);
+  }
+} catch (e) {
+  console.log('dedupe: queue lookup skipped (' + String(e?.message || e).slice(0, 120) + ')');
+}
 let count = Math.max(1, parseInt(args.count ?? '1', 10) || 1);
 const ALL_PLATFORMS = ['instagram', 'facebook'];
 const platforms = (args.platforms
