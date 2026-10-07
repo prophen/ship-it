@@ -239,6 +239,7 @@ for (let i = 0; i < count; i++) {
           platform,
           copy: d.caption + (d.hashtags.length ? '\n\n' + d.hashtags.join(' ') : ''),
           first_comment: d.first_comment || null,
+          facts: idea.facts,
           status: 'draft',
           sources,
         })
