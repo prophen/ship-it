@@ -31,16 +31,18 @@ Built for the "Build an Agent" hackathon, Oct 7 2026. The gap it closes: every p
 - **Supabase**: the queue and the receipts, RLS-locked to the service role. Also a sponsor, which is exactly why it's back: Agent37, OpenAI, Supabase, and Monid on the submission.
 - **Her own stack, not sponsors**: Sanity (dedupe), Exa (verification), Buffer (publishing).
 
-## Build slice: visual pipeline (OpenAI)
+## Build slice: visual pipeline (OpenAI) — implemented
 
-Source of truth: `vendor/cbs-workflow/` (her scheduler agent's export). Not implemented yet on purpose; this is the 2:50–3:20 slice.
+Source of truth: `vendor/cbs-workflow/` (her scheduler agent's export). The agent runs every step; her dashboard approval stays the final gate.
+
+`worker/visual.mjs` (standalone: `node visual.mjs [--source-ref="Name"] [--reference-url="https://..."]`):
 
 1. **Caption spec**: done. `worker/new-story.mjs` drafts to the house style from `PROMPT_TEMPLATES.md` #4 (3+ paragraphs, hook, disclosure line, exactly five hashtags, separate hashtag-free first comment stored on the row).
-2. **`worker/visual.mjs`** (new): for each queued story, build the image prompt from the verified facts + inspected likeness cues (`PROMPT_TEMPLATES.md` #3, ending exactly "Optimized for 1080x1350 format."), then call `POST https://api.openai.com/v1/images/generations` with `model: gpt-image-1`, `size: 1024x1536`. Save the bytes locally, record dimensions.
-3. **Reference discovery**: find a credible likeness reference (institutional collection or historical record) with attribution URL. Monid image search is the sponsor-friendly path: `monid discover -q "historical portrait image search"`. For the demo, pre-picking 1–2 references is fine.
-4. **Likeness QA**: send the reference + generated image to a vision-capable OpenAI model with the `LIKENESS_QA.md` rubric; expect back pass / revise / unresolved with reasons. Never a numeric score. Store the record in the row's `qa` column.
-5. **Hosting**: upload the final 1080x1350 to Supabase Storage (public bucket), set `image_url` on the rows.
-6. **Gating**: revise/unresolved means the image does not queue; the copy still can, flagged. Her dashboard approval stays the final gate regardless.
+2. **Image prompt**: built from the verified facts stored on the queue row (`facts` column) plus likeness cues the agent inspects from the reference portrait. Follows template #3, must end exactly "Optimized for 1080x1350 format." Nothing enters the prompt that is not verified.
+3. **Reference discovery**: `--reference-url` flag, then `REFERENCE_URL` env, then Monid (`MONID_API_KEY`) best-effort via its CLI. No reference means QA is recorded unresolved and the image is held, never shipped on a guess.
+4. **Generation**: `POST /v1/images/generations`, `gpt-image-1`, `1024x1536`. Paid; running the script is the approval.
+5. **Likeness QA**: the reference and generated images go to a vision model with the `LIKENESS_QA.md` rubric. Verdict is pass, revise, or unresolved with reasons, never a numeric score. Stored on the row's `qa` column.
+6. **Hosting and gating**: pass uploads to the public `cbs-visuals` Supabase Storage bucket and sets `image_url` on the story's rows. Revise/unresolved leaves the image off; the copy can still queue, flagged. The dashboard shows a QA badge (green/amber/red) with reasons on hover.
 
 ## 2-hour build plan (2:30 - 4:40 PM PDT)
 
