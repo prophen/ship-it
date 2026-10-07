@@ -135,6 +135,30 @@ Return JSON only: {"instagram": {"caption": "...", "hashtags": ["#...", "#...", 
   return openaiJson(system, user);
 }
 
+// Lenient shape check: the caption is the must-have; hashtags and the first
+// comment degrade gracefully (she reviews every draft before it publishes).
+function normalizeDraft(platform, raw) {
+  let caption = '';
+  let hashtags = [];
+  let first_comment = '';
+  if (typeof raw === 'string') {
+    caption = raw;
+  } else if (raw && typeof raw === 'object') {
+    if (typeof raw.caption === 'string') caption = raw.caption;
+    const h = raw.hashtags;
+    if (Array.isArray(h)) hashtags = h.filter((t) => typeof t === 'string');
+    else if (typeof h === 'string') hashtags = h.split(/[\s,]+/).filter(Boolean);
+    hashtags = hashtags.map((t) => (t.startsWith('#') ? t : '#' + t)).slice(0, 5);
+    if (typeof raw.first_comment === 'string') first_comment = raw.first_comment;
+  }
+  caption = caption.trim();
+  if (!caption) throw new Error(`draft for ${platform} came back empty`);
+  if (hashtags.length !== 5) {
+    console.log(`  note: ${platform} draft has ${hashtags.length} hashtags (house style is 5)`);
+  }
+  return { caption, hashtags, first_comment: first_comment.trim() };
+}
+
 const args = {};
 for (const a of process.argv.slice(2)) {
   const m = a.match(/^--([^=]+)=(.*)$/);
@@ -190,27 +214,31 @@ for (let i = 0; i < count; i++) {
     console.log(`candidate: ${idea.person} — ${idea.title}`);
     const sources = await verify(idea);
     console.log(`verified: ${sources.length} sources across ${distinctDomains(sources).size} domains`);
-    const drafts = await draft(idea, sources);
-    for (const p of platforms) {
-      const d = drafts[p];
-      if (!d || typeof d.caption !== 'string' || !Array.isArray(d.hashtags) ||
-          d.hashtags.length !== 5 || typeof d.first_comment !== 'string') {
-        throw new Error(`draft for ${p} did not match the caption spec`);
+    // Draft with one retry: normalize leniently, only fail on an empty caption.
+    const normalized = {};
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const drafts = await draft(idea, sources);
+      try {
+        for (const p of platforms) normalized[p] = normalizeDraft(p, drafts[p]);
+        break;
+      } catch (e) {
+        console.log(`  draft attempt ${attempt}: ${String(e?.message || e).slice(0, 150)}`);
+        for (const p of platforms) delete normalized[p];
+        if (attempt === 2) throw e;
       }
     }
 
     // 5. Queue (one row per platform in --platforms).
-    const targets = platforms.filter((p) => drafts[p]);
-    for (const platform of targets) {
-      const d = drafts[platform];
+    for (const platform of platforms) {
+      const d = normalized[platform];
       const { data: inserted, error: insertError } = await supabase
         .from('publish_queue')
         .insert({
           source_type: 'new_story',
           source_ref: idea.person,
           platform,
-          copy: d.caption.trim() + '\n\n' + d.hashtags.join(' '),
-          first_comment: d.first_comment,
+          copy: d.caption + (d.hashtags.length ? '\n\n' + d.hashtags.join(' ') : ''),
+          first_comment: d.first_comment || null,
           status: 'draft',
           sources,
         })
