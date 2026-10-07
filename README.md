@@ -8,14 +8,14 @@ Built for the "Build an Agent" hackathon, Oct 7 2026. The gap it closes: every p
 
 - **Story**: one historical subject (a person or event). The unit of research: title, facts, sources.
 - **Post**: one published unit on one platform. One story becomes one post per platform in `--platforms`.
-- So `--count=12 --platforms=instagram,facebook` = 12 stories, 24 posts (her daily cadence: the same 12 stories to both platforms).
+- So `--count=12` = 12 stories, 12 Facebook posts (text-only for the demo; Instagram needs an image, which the visual slice adds).
 
 ## The flow, end to end
 
 1. **Dedupe**: `worker/new-story.mjs` reads `worker/covered.json`, a local export of 296 story titles (150 from Sanity + 146 from her Hermes scheduler), so the agent never repeats one (falls back to the live Sanity API if the file is missing). Sanity is her data, not a sponsor.
 2. **Ideate (OpenAI)**: given the already-covered list, OpenAI proposes one new, real person or event from Black California history, with key facts.
 3. **Verify (Exa)**: her own Exa key searches the candidate. It needs 2+ results across 2+ independent domains or the run stops cold. No unverified story ever reaches the queue. This is the accuracy gate, and it is very CBS.
-4. **Draft (OpenAI)**: one post per platform (Instagram, Facebook), written from the verified facts only, in her voice: direct, natural, no em-dashes, no marketing copy. `--count` is stories, not posts. Her daily cadence is `--count=12`: 12 stories mirrored to both platforms, 24 posts.
+4. **Draft (OpenAI)**: one Facebook post per story, written from the verified facts only, in her voice: direct, natural, no em-dashes, no marketing copy. `--count` is stories, not posts. Instagram is out for the text-only demo (its API requires an image); the visual slice reattaches it.
 5. **Visual (OpenAI, build-window slice)**: see "Build slice: visual pipeline" below. Native OpenAI image generation is the established CBS workflow (per the scheduler agent's export, do not substitute another provider). The worker generates the image, then runs likeness QA through OpenAI vision against an inspected reference, following `vendor/cbs-workflow/LIKENESS_QA.md`. Monid's job shifts to reference-portrait discovery (image search from its catalog). Final images live on Supabase Storage for public URLs.
 6. **Queue (Supabase)**: rows in `publish_queue`, status `draft`, with the verification sources attached as JSON. With `--schedule`, each draft also gets a `scheduled_for` slot spread across 8am–8pm PT.
 7. **Approve (dashboard)**: she reads the drafts and their sources, taps **Approve all** (or rejects duds individually). Nothing moves without this.
@@ -77,7 +77,7 @@ node agent37.mjs push-env            # writes worker/.env onto the instance
 ## Demo script (about 2 min)
 
 1. **The problem** (15s): "I have built this pipeline three times. Every version started from stories I already had and stopped before publishing."
-2. **The agent works** (30s): show the autonomous run live. The agent proposes new topics against 296 covered titles, verifies each with Exa, drafts both platforms. If a verification fails and the run kills that story, show it, that's the judgment beat. The `--topic` path is the fallback if ideation stalls in the window.
+2. **The agent works** (30s): show the autonomous run live. The agent proposes new topics against 296 covered titles, verifies each with Exa, drafts the Facebook post. If a verification fails and the run kills that story, show it, that's the judgment beat. The `--topic` path is the fallback if ideation stalls in the window.
 3. **Approve + wake** (25s): scan the drafts and their sources in the dashboard, tap **Approve all**, tap Wake agent. The agent was asleep on Agent37.
 4. **Published** (30s): refresh the live profile, the post is there. Supabase row flips to `scheduled` or `published` with receipt id and timestamp.
 5. **The sell** (15s): "Every creator has a drafts folder and a research backlog. This is research in, published posts out, with your approval in the middle."
