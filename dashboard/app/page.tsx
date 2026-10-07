@@ -65,6 +65,11 @@ function Card({ row }: { row: QueueRow }) {
   return (
     <div className="card">
       <span className={`badge ${row.platform}`}>{row.platform}</span>
+      {row.qa?.decision && (
+        <span className={`badge qa-${row.qa.decision}`} title={(row.qa.reasons || []).join(' ')}>
+          {row.qa.decision}
+        </span>
+      )}
       <p className="copy">{row.copy}</p>
       {row.first_comment && (
         <p className="first-comment">
