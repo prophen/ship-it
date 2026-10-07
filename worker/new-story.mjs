@@ -4,8 +4,8 @@
 //   node new-story.mjs --topic="Port Chicago sailors" [--schedule]
 //   node new-story.mjs --count=12 [--schedule]
 // --count is stories; each story drafts one post per platform in --platforms
-// (default: instagram,facebook). Her daily cadence: --count=12
-// (12 stories mirrored to both platforms = 24 posts).
+// (default: facebook). Her daily cadence: --count=12
+// (12 stories, one Facebook post each).
 // --schedule spreads the drafts evenly across the day window (Pacific).
 // --topic skips ideation and builds facts for your chosen topic instead;
 // verification, drafting, and all other gates still run.
@@ -127,7 +127,7 @@ Caption rules:
 - No hashtags anywhere in the caption.
 Hashtags: exactly five distinct relevant hashtags, no more, no fewer.
 First comment: 1-2 sentences, warm fan-to-fan, one verified memorable detail, invite readers to tag a friend or share. No hashtags.
-Return JSON only: {"instagram": {"caption": "...", "hashtags": ["#...", "#...", "#...", "#...", "#..."], "first_comment": "..."}, "facebook": {"caption": "...", "hashtags": ["#...", "#...", "#...", "#...", "#..."], "first_comment": "..."}}.`;
+Return JSON only: {"facebook": {"caption": "...", "hashtags": ["#...", "#...", "#...", "#...", "#..."], "first_comment": "..."}}.`;
   const user = `Verified facts about ${idea.person} (${idea.title}):\n` +
     idea.facts.map((f) => '- ' + f).join('\n') +
     `\nWhy it matters: ${idea.why_it_matters}\nSources:\n` +
@@ -182,7 +182,7 @@ try {
   console.log('dedupe: queue lookup skipped (' + String(e?.message || e).slice(0, 120) + ')');
 }
 let count = Math.max(1, parseInt(args.count ?? '1', 10) || 1);
-const ALL_PLATFORMS = ['instagram', 'facebook'];
+const ALL_PLATFORMS = ['facebook'];
 const platforms = (args.platforms
   ? String(args.platforms).split(',').map((s) => s.trim().toLowerCase())
   : ALL_PLATFORMS
