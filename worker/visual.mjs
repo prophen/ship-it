@@ -155,14 +155,15 @@ async function runStory(person) {
   console.log(`\n--- visual: ${person} ---`);
   const { data: rows, error } = await supabase
     .from('publish_queue')
-    .select('id, facts, sources')
+    .select('id, status, facts, sources')
     .eq('source_ref', person)
-    .eq('status', 'draft')
+    .in('status', ['draft', 'approved'])
     .is('image_url', null)
     .limit(1);
   if (error) throw error;
   const row = rows?.[0];
   if (!row) { console.log('  nothing to do'); return; }
+  const wasApproved = row.status === 'approved';
   if (!Array.isArray(row.facts) || !row.facts.length) {
     console.log('  skipped: no verified facts stored; re-run new-story.mjs first');
     return;
@@ -215,7 +216,7 @@ async function runStory(person) {
     .from('publish_queue')
     .update({ qa: qaRecord })
     .eq('source_ref', person)
-    .eq('status', 'draft');
+    .in('status', ['draft', 'approved']);
   if (qaError) throw qaError;
 
   // 5. Pass -> host on Supabase Storage and attach. Anything else holds.
@@ -228,13 +229,19 @@ async function runStory(person) {
     });
     if (upError) throw upError;
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    // The image is new to this package: an approved story goes back to draft
+    // so the exact copy + asset gets a human yes before publishing.
+    const updates = wasApproved
+      ? { image_url: urlData.publicUrl, status: 'draft' }
+      : { image_url: urlData.publicUrl };
     const { error: imgError } = await supabase
       .from('publish_queue')
-      .update({ image_url: urlData.publicUrl })
+      .update(updates)
       .eq('source_ref', person)
-      .eq('status', 'draft');
+      .in('status', ['draft', 'approved']);
     if (imgError) throw imgError;
-    console.log('  image attached: ' + urlData.publicUrl.slice(0, 80));
+    console.log('  image attached: ' + urlData.publicUrl.slice(0, 80) +
+      (wasApproved ? ' (back to draft for re-approval)' : ''));
   } else {
     console.log(`  image held (${qa.decision}); copy can still queue, flagged for review`);
   }
@@ -247,7 +254,7 @@ if (args['source-ref']) {
   const { data, error } = await supabase
     .from('publish_queue')
     .select('source_ref')
-    .eq('status', 'draft')
+    .in('status', ['draft', 'approved'])
     .is('image_url', null);
   if (error) throw error;
   stories = [...new Set((data || []).map((r) => r.source_ref).filter(Boolean))];
