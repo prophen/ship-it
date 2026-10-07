@@ -35,8 +35,16 @@ export async function listChannels(token, organizationId) {
 // enum, its error names the valid values; fall back to "addToQueue".
 // dueAt: ISO timestamp for a specific slot. Uses mode "customScheduled".
 // (The field is dueAt, not scheduledAt, which does not exist on the API.)
-export async function createBufferPost({ text, imageUrl, channelId, token, mode = 'shareNow', dueAt }) {
+// Buffer requires a per-network post type in `metadata` (e.g. "Facebook posts
+// require a type"). Text-only Facebook post -> type: post.
+const METADATA_BY_PLATFORM = {
+  facebook: ', metadata: { facebook: { type: post } }',
+  instagram: ', metadata: { instagram: { type: post, shouldShareToFeed: true } }',
+};
+
+export async function createBufferPost({ text, imageUrl, channelId, token, mode = 'shareNow', dueAt, platform }) {
   const assets = imageUrl ? `, assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]` : '';
+  const metadata = (platform && METADATA_BY_PLATFORM[platform]) || '';
   const scheduling = dueAt
     ? `mode: customScheduled, dueAt: ${JSON.stringify(new Date(dueAt).toISOString())}`
     : `mode: ${mode}`;
@@ -47,7 +55,7 @@ export async function createBufferPost({ text, imageUrl, channelId, token, mode 
         text: ${JSON.stringify(text)},
         channelId: ${JSON.stringify(channelId)},
         schedulingType: automatic,
-        ${scheduling}${assets}
+        ${scheduling}${assets}${metadata}
       }) {
         ... on PostActionSuccess { post { id status } }
         ... on MutationError { message }
