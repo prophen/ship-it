@@ -112,13 +112,22 @@ async function verify(idea) {
   return sources.slice(0, 5);
 }
 
-// 4. Draft: platform-native versions from the verified facts only.
+// 4. Draft: house caption spec (PROMPT_TEMPLATES.md #4) from the verified facts only.
 async function draft(idea, sources) {
   const system = `You draft social posts for "California Black Stories".
-Voice: direct and practical, natural, never marketing copy. Never use em-dashes; use commas, periods, or colons. Lead with the human story, end with one reflective line.
+Voice: direct and practical, warm, authoritative, proud. Natural, never marketing copy. Never use em-dashes; use commas, periods, or colons.
 Accuracy first: use ONLY the verified facts below. Never invent dates, places, or quotes.
-Return JSON only: {"instagram": "...", "facebook": "..."}.
-Constraints: instagram: hook line, short body, 3-5 hashtags at the end. facebook: 2-4 sentences, storytelling.`;
+Caption rules:
+- At least three paragraphs. Open with a concrete, scroll-stopping hook, never generic "hidden history" hype.
+- Establish who, what, where, and the meaningful historical contribution.
+- Connect the documented story to identity, community, or present relevance. No invented causation, no personal memories.
+- Readable sentences, line breaks, a few appropriate emojis (use the 🏾 tone for human/hand emojis).
+- End with a genuine engagement invitation.
+- Include this disclosure line: Image generated with AI; not an archival photograph.
+- No hashtags anywhere in the caption.
+Hashtags: exactly five distinct relevant hashtags, no more, no fewer.
+First comment: 1-2 sentences, warm fan-to-fan, one verified memorable detail, invite readers to tag a friend or share. No hashtags.
+Return JSON only: {"instagram": {"caption": "...", "hashtags": ["#...", "#...", "#...", "#...", "#..."], "first_comment": "..."}, "facebook": {"caption": "...", "hashtags": ["#...", "#...", "#...", "#...", "#..."], "first_comment": "..."}}.`;
   const user = `Verified facts about ${idea.person} (${idea.title}):\n` +
     idea.facts.map((f) => '- ' + f).join('\n') +
     `\nWhy it matters: ${idea.why_it_matters}\nSources:\n` +
@@ -168,17 +177,26 @@ for (let i = 0; i < count; i++) {
     const sources = await verify(idea);
     console.log(`verified: ${sources.length} sources across ${distinctDomains(sources).size} domains`);
     const drafts = await draft(idea, sources);
+    for (const p of platforms) {
+      const d = drafts[p];
+      if (!d || typeof d.caption !== 'string' || !Array.isArray(d.hashtags) ||
+          d.hashtags.length !== 5 || typeof d.first_comment !== 'string') {
+        throw new Error(`draft for ${p} did not match the caption spec`);
+      }
+    }
 
     // 5. Queue (one row per platform in --platforms).
     const targets = platforms.filter((p) => drafts[p]);
     for (const platform of targets) {
+      const d = drafts[platform];
       const { data: inserted, error: insertError } = await supabase
         .from('publish_queue')
         .insert({
           source_type: 'new_story',
           source_ref: idea.person,
           platform,
-          copy: drafts[platform],
+          copy: d.caption.trim() + '\n\n' + d.hashtags.join(' '),
+          first_comment: d.first_comment,
           status: 'draft',
           sources,
         })
