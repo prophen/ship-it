@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+// Load first: ESM evaluates imports before the entry script's body runs,
+// so dotenv.config() in new-story.mjs / poll-once.mjs would come too late.
+dotenv.config({ path: new URL('../.env', import.meta.url) });
 import { createClient } from '@supabase/supabase-js';
 
 // Server-side Supabase client (service role). RLS is enabled on
