@@ -21,7 +21,7 @@ import { upcomingSlots } from './lib/schedule.mjs';
 
 const {
   OPENAI_API_KEY,
-  OPENAI_MODEL = 'gpt-5-mini',
+  OPENAI_MODEL = 'gpt-4o-mini',
   SANITY_PROJECT_ID = 'bq2hoxdt',
   SANITY_DATASET = 'production',
   SANITY_TYPE = 'story',
